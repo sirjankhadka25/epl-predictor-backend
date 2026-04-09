@@ -1,10 +1,9 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import os
 
-# Train model if pkl files don't exist yet
 if not os.path.exists("xgb_model.pkl"):
-    print("Model not found — training now...")
+    print("Model not found — training now. This takes 2-3 minutes...")
     from train import train_and_save
     train_and_save()
 

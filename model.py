@@ -2,14 +2,15 @@ import joblib
 import numpy as np
 import os
 
-BASE_DIR  = os.path.dirname(__file__)
-
-xgb_model = joblib.load(os.path.join(BASE_DIR, "xgb_model.pkl"))
-scaler     = joblib.load(os.path.join(BASE_DIR, "scaler.pkl"))
-features   = joblib.load(os.path.join(BASE_DIR, "features.pkl"))
-
+BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 RESULT_MAP   = {0: "A", 1: "D", 2: "H"}
 RESULT_LABEL = {"H": "Home win", "D": "Draw", "A": "Away win"}
+
+def get_model():
+    xgb_model = joblib.load(os.path.join(BASE_DIR, "xgb_model.pkl"))
+    scaler     = joblib.load(os.path.join(BASE_DIR, "scaler.pkl"))
+    features   = joblib.load(os.path.join(BASE_DIR, "features.pkl"))
+    return xgb_model, scaler, features
 
 def avg_goals(matches, team):
     vals = []
@@ -21,10 +22,9 @@ def avg_goals(matches, team):
             vals.append(score.get("away") or 0)
     return np.mean(vals) if vals else 1.2
 
-def build_features(home_team: str, away_team: str, recent_results: dict):
+def build_features(home_team, away_team, recent_results, features):
     home_goals = avg_goals(recent_results.get(home_team, []), home_team)
     away_goals = avg_goals(recent_results.get(away_team, []), away_team)
-
     feat = {
         "ht_goal_diff":        home_goals - away_goals,
         "shot_diff":           home_goals * 5 - away_goals * 5,
@@ -38,16 +38,14 @@ def build_features(home_team: str, away_team: str, recent_results: dict):
         "HF":                  10.0,
         "AF":                  10.0,
     }
+    return np.array([[feat[f] for f in features]])
 
-    vector = np.array([[feat[f] for f in features]])
-    return vector
-
-def predict(home_team: str, away_team: str, recent_results: dict):
-    X         = build_features(home_team, away_team, recent_results)
+def predict(home_team, away_team, recent_results):
+    xgb_model, scaler, features = get_model()
+    X         = build_features(home_team, away_team, recent_results, features)
     probs     = xgb_model.predict_proba(X)[0]
     pred_idx  = int(np.argmax(probs))
     pred_code = RESULT_MAP[pred_idx]
-
     return {
         "prediction": pred_code,
         "label":      RESULT_LABEL[pred_code],
