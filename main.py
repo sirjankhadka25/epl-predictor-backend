@@ -1,5 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import os
+
+# Train model if pkl files don't exist yet
+if not os.path.exists("xgb_model.pkl"):
+    print("Model not found — training now...")
+    from train import train_and_save
+    train_and_save()
+
 from data import get_fixtures, get_recent_results
 from model import predict
 
@@ -7,7 +15,7 @@ app = FastAPI(title="EPL Predictor API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
